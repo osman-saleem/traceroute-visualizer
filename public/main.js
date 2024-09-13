@@ -155,33 +155,48 @@ const API_KEY = "bd89924fb0004515ad776b73189bc523";
 
 var pins = [];
 var curves = [];
+var IDofCurrentTraceRoute = 0;
 
 console.log(pins)
 console.log(curves)
 
 // given a list of IPs, convert them to lat/long and add to pin list
-async function updatePinsAndCurves(ip) {
-  console.log("ip " + " " + ip)
-  // get lat and long of each IP
-  let url = "https://api.ipgeolocation.io/ipgeo?apiKey=" + API_KEY + "&ip=" + ip;
-  console.log(url);
-  await fetch(url)
-    .then(r => r.json())
-    .then(r => {
-      console.log(r)
-      let lat = parseInt(r.latitude);
-      let lng = parseInt(r.longitude);
-      console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
-      var pin = getPin(lat,lng);
-      pins.push(pin);
-      sphere.add(pin);
-      if(pins.length > 1) {
-        var curve = getCurve(pin, pins[pins.length - 2]);
-        curves.push(curve);
-        sphere.add(curve);
-      }
-  })
+// async function updatePinsAndCurves(ip) {
+//   console.log("ip " + " " + ip)
+//   // get lat and long of each IP
+//   let url = "https://api.ipgeolocation.io/ipgeo?apiKey=" + API_KEY + "&ip=" + ip;
+//   console.log(url);
+//   await fetch(url)
+//     .then(r => r.json())
+//     .then(r => {
+//       console.log(r)
+//       let lat = parseInt(r.latitude);
+//       let lng = parseInt(r.longitude);
+//       console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
+//       var pin = getPin(lat,lng);
+//       pins.push(pin);
+//       sphere.add(pin);
+//       if(pins.length > 1) {
+//         var curve = getCurve(pin, pins[pins.length - 2]);
+//         curves.push(curve);
+//         sphere.add(curve);
+//       }
+//   })
+// }
+
+function updatePinsAndCurves(data) {
+  if(data.id == IDofCurrentTraceRoute) {
+    var pin = getPin(data.lat, data.lng)
+    pins.push(pin)
+    sphere.add(pin)
+    if(pins.length > 1) {
+      var curve = getCurve(pin, pins[pins.length - 2]);
+      curves.push(curve);
+      sphere.add(curve);
+    }
+  }
 }
+
 
 function clearPinsAndCurves() {
   for(let pin in pins) {
@@ -231,14 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const socket = io();
   //updatePinsTest();
   // Receive data from the server
-  socket.on('newTracerouteHop', (hop) => {
-    console.log('IP received from server:', hop);
+  socket.on('newTracerouteHop', (data) => {
     // Use ipList to update the 3D globe
-    updatePinsAndCurves(hop);
+    updatePinsAndCurves(data);
   });
 
-  socket.on('newTraceroute', () => {
+  socket.on('newTraceroute', (data) => {
     console.log('New traceroute started');
+    IDofCurrentTraceRoute = data.id;
     clearPinsAndCurves();
   });
 
