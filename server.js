@@ -1,9 +1,6 @@
 const express = require("express");
 const path = require('path');
-
-//const traceroute = require("traceroute");
 const traceroute = require("nodejs-traceroute");
-
 const socketIo = require('socket.io');
 const http = require('http');
 const { type } = require("os");
@@ -22,41 +19,17 @@ app.get('/', (req, res) => {
     res.render('index.ejs');
 })
 
+var tracer;
 
 io.on('connection', (socket)  => {
     console.log('A user connected');
 
-
-
-    // socket.on('formSubmit', (data) => {
-    //     console.log("starting traceroute: ")
-    //     traceroute.trace(data.domain, function(err,hops) {
-    //         if (!err) {
-    //             console.log("ending traceroute")
-    //             //hops = hops.slice(3)
-    //             for(x in hops){
-    //                 hops[x] = hops[x].slice(32);
-    //                 hops[x] = hops[x].slice(0,-2);
-    //             }
-    //             console.log(hops)
-    //             hops = hops.filter(hop => hop !== '' && hop !== 'Request timed out' && hop !== '192.168.0.1');
-                
-    //             var results = { results: hops ? hops : null };
-    //             console.log(results)
-    //             socket.emit('tracerouteData', results);
-    //         } else {
-    //             console.log("trace route error");
-    //             console.log(err);
-    //         }
-    
-    //     });
-    // })
-
     socket.on('formSubmit', (data) => {
         console.log("starting traceroute: ")
         try {
-            var hops = []
-            const tracer = new traceroute();
+            let timed_out = 0;
+            socket.emit('newTraceroute');
+            tracer = new traceroute();
             tracer
                 .on('pid', (pid) => {
                     console.log(`pid: ${pid}`);
@@ -66,12 +39,15 @@ io.on('connection', (socket)  => {
                 })
                 .on('hop', (hop) => {
                     console.log(`hop: ${JSON.stringify(hop)}`);
-                    console.log(hops)
                     if(hop.ip !== '' && hop.ip !== 'Request timed out.' && hop.ip !== '192.168.0.1'){
-                        hops.push(hop.ip)
+                        socket.emit('newTracerouteHop', hop.ip);
                     }
-                    var results = { results: hops ? hops : null };
-                    socket.emit('tracerouteData', results);
+                    if(hop.ip == "Request timed out.") {
+                        timed_out += 1;
+                        if(timed_out == 1) {
+                            tracer.emit('close');
+                        }
+                    }
                 })
                 .on('close', (code) => {
                     console.log(`close: code ${code}`);

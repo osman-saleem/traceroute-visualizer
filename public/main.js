@@ -160,48 +160,38 @@ console.log(pins)
 console.log(curves)
 
 // given a list of IPs, convert them to lat/long and add to pin list
-async function updatePins(ips) {
-  console.log("in updatePins function. ips: ")
-  console.log(ips)
-  //console.log(pins)
-  //console.log(curves)
+async function updatePinsAndCurves(ip) {
+  console.log("ip " + " " + ip)
+  // get lat and long of each IP
+  let url = "https://api.ipgeolocation.io/ipgeo?apiKey=" + API_KEY + "&ip=" + ip;
+  console.log(url);
+  await fetch(url)
+    .then(r => r.json())
+    .then(r => {
+      console.log(r)
+      let lat = parseInt(r.latitude);
+      let lng = parseInt(r.longitude);
+      console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
+      var pin = getPin(lat,lng);
+      pins.push(pin);
+      sphere.add(pin);
+      if(pins.length > 1) {
+        var curve = getCurve(pin, pins[pins.length - 2]);
+        curves.push(curve);
+        sphere.add(curve);
+      }
+  })
+}
+
+function clearPinsAndCurves() {
   for(let pin in pins) {
-    //console.log(pins[pin])
     sphere.remove(pins[pin])
   }
   for(let curve in curves) {
-    //console.log(curves[curve])
     sphere.remove(curves[curve])
   }
   pins = []
   curves = []
-  for(let x in ips){
-    console.log("ip " + x + " " + ips[x])
-    // get lat and long of each IP
-    let url = "https://api.ipgeolocation.io/ipgeo?apiKey=" + API_KEY + "&ip=" + String(ips[x]);
-    console.log(url);
-    await fetch(url)
-      .then(r => r.json())
-      .then(r => {
-        console.log(r)
-        let lat = parseInt(r.latitude);
-        //let lng = Math.abs(parseInt(r.longitude)) + 90;
-        let lng = parseInt(r.longitude);
-        //console.log(lat + " " + -(lng - 90) + " " + r.city + " " + r.country_name);
-        console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
-        
-        var pin = getPin(lat,lng)
-        
-        pins.push(pin);
-        sphere.add(pin);
-    })
-  }
-  //console.log(pins)
-  for(let x = 0; x < pins.length - 1; x++){
-    var curve = getCurve(pins[x], pins[x+1]);
-    curves.push(curve);
-    sphere.add(curve);
-  }
 }
 
 var test_ips = [
@@ -217,6 +207,9 @@ var test_ips = [
 var test_locs = [[49,-122],[49,-123],[47,-122],[47,-122],[35,139],[35,139]]
 
 
+// cool websites to visualize
+// www.sassa.gov.za
+// www.independentaustralia.net
 
 async function updatePinsTest() {
   for(let x in test_locs) {
@@ -236,12 +229,17 @@ async function updatePinsTest() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const socket = io();
-  updatePinsTest();
+  //updatePinsTest();
   // Receive data from the server
-  socket.on('tracerouteData', (ipList) => {
-    console.log('IPs received from server:', ipList);
+  socket.on('newTracerouteHop', (hop) => {
+    console.log('IP received from server:', hop);
     // Use ipList to update the 3D globe
-    updatePins(ipList.results);
+    updatePinsAndCurves(hop);
+  });
+
+  socket.on('newTraceroute', () => {
+    console.log('New traceroute started');
+    clearPinsAndCurves();
   });
 
   document.getElementById('domain_form').addEventListener('submit', (event) => {
