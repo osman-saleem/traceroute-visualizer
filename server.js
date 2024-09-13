@@ -73,7 +73,8 @@ io.on('connection', (socket)  => {
                                 let lat = parseInt(r.latitude);
                                 let lng = parseInt(r.longitude);
                                 console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
-                                while(lastSentHop != parseInt(hop.hop) - 1)
+                                console.log(lastSentHop, hop.hop)
+                                while(lastSentHop != parseInt(hop.hop) - 1) console.log(lastSentHop, hop.hop)
                                 lastSentHop = parseInt(hop.hop)
                                 socket.emit('newTracerouteHop', {lat: lat, lng: lng, id: ID})
                         })
