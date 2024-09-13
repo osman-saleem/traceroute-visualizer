@@ -75,14 +75,15 @@ io.on('connection', (socket)  => {
                                 let lng = parseInt(r.longitude);
                                 console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
                                 console.log(lastSentHop, hop.hop)
-                                while(lastSentHop != parseInt(hop.hop) - 1)
+                                while(lastSentHop != parseInt(hop.hop) - 1) {}
                                 lastSentHop = parseInt(hop.hop)
                                 socket.emit('newTracerouteHop', {lat: lat, lng: lng, id: ID})
                         })
                         //socket.emit('newTracerouteHop', hop.ip);
                     // else hop.ip is invalid
                     } else {
-                        lastSentHop = hop.hop;
+                        while(lastSentHop != parseInt(hop.hop) - 1) {}
+                        lastSentHop = parseInt(hop.hop)
                     }
                     if(hop.ip == "Request timed out.") {
                         timed_out += 1;
