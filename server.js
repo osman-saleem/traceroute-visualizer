@@ -77,6 +77,7 @@ io.on('connection', (socket)  => {
                                 console.log(lastSentHop, hop.hop)
                                 while(lastSentHop != parseInt(hop.hop) - 1) {}
                                 lastSentHop = parseInt(hop.hop)
+                                console.log('updated lastSentHop to ' + lastSentHop)
                                 socket.emit('newTracerouteHop', {lat: lat, lng: lng, id: ID})
                         })
                         //socket.emit('newTracerouteHop', hop.ip);
@@ -84,6 +85,7 @@ io.on('connection', (socket)  => {
                     } else {
                         while(lastSentHop != parseInt(hop.hop) - 1) {}
                         lastSentHop = parseInt(hop.hop)
+                        console.log('updated lastSentHop to ' + lastSentHop)
                     }
                     if(hop.ip == "Request timed out.") {
                         timed_out += 1;
