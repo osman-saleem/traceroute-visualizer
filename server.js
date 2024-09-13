@@ -50,7 +50,7 @@ io.on('connection', (socket)  => {
         try {
             let timed_out = 0;
             let ID = Math.random();
-            let lastSentHop = 1;
+            let lastSentHop = 0;
             let currentHop = 0;
             socket.emit('newTraceroute', {id: ID});
             tracer = new traceroute();
