@@ -50,6 +50,8 @@ io.on('connection', (socket)  => {
         try {
             let timed_out = 0;
             let ID = Math.random();
+            let lastSentHop = 1;
+            let currentHop = 0;
             socket.emit('newTraceroute', {id: ID});
             tracer = new traceroute();
             tracer
@@ -61,18 +63,23 @@ io.on('connection', (socket)  => {
                 })
                 .on('hop', async (hop) => {
                     console.log(`hop: ${JSON.stringify(hop)}`);
+
                     if(hop.ip !== '*' && hop.ip !== '' && hop.ip !== 'Request timed out.' && hop.ip !== '192.168.0.1'){
                         let url = "https://api.ipgeolocation.io/ipgeo?apiKey=" + API_KEY + "&ip=" + hop.ip;
                         await fetch(url)
                             .then(r => r.json())
                             .then(r => {
-                            //console.log(r)
-                            let lat = parseInt(r.latitude);
-                            let lng = parseInt(r.longitude);
-                            console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
-                            socket.emit('newTracerouteHop', {lat: lat, lng: lng, id: ID})
+                                //console.log(r)
+                                let lat = parseInt(r.latitude);
+                                let lng = parseInt(r.longitude);
+                                console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
+                                while(lastSentHop != parseInt(hop.hop) - 1)
+                                lastSentHop = parseInt(hop.hop)
+                                socket.emit('newTracerouteHop', {lat: lat, lng: lng, id: ID})
                         })
                         //socket.emit('newTracerouteHop', hop.ip);
+                    } else {
+                        lastSentHop++;
                     }
                     if(hop.ip == "Request timed out.") {
                         timed_out += 1;
