@@ -82,7 +82,7 @@ io.on('connection', (socket)  => {
                         //socket.emit('newTracerouteHop', hop.ip);
                     // else hop.ip is invalid
                     } else {
-                        lastSentHop++;
+                        lastSentHop = hop.hop;
                     }
                     if(hop.ip == "Request timed out.") {
                         timed_out += 1;
