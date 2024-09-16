@@ -214,9 +214,13 @@ function updatePinsAndCurves(data) {
     curves = []
 
     if(pins.length > 1) {
-      var curve = getCurve(pin, pins[pins.length - 2][0]);
-      curves.push(curve);
-      sphere.add(curve);
+      for(let i = 1; i < pins.length; i++) {
+        let pin1 = pins[i][0];
+        let pin2 = pins[i-1][0];
+        var curve = getCurve(pin1, pin2);
+        curves.push(curve);
+        sphere.add(curve);
+      }
     }
   }
 }
