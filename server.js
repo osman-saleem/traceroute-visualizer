@@ -4,10 +4,14 @@ const traceroute = require("nodejs-traceroute");
 const socketIo = require('socket.io');
 const http = require('http');
 const { type } = require("os");
+const fs = require("fs");
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+const counterFilePath = './counter.txt';
+
+let counter = 0;
 
 app.set('view engine', 'ejs');
 
@@ -22,16 +26,6 @@ app.get('/', (req, res) => {
 var tracer;
 
 // problem:
-// if a traceroute is started and doesnt finish before you start another one
-// the currently rendered pins/curves will get cleared (good) but as new ips
-// arrive from the previous traceroute, it will render them as well as new ips
-// from the current traceroute
-// fix: 
-// create a random number and send that over the socket when newTraceroute is emitted,
-// and also send that number with each IP the server sends to client
-// the client will only render IPS with the correct number
-
-// problem:
 // ips in the server code are obviously generated in order, but they are emitted
 // over the socket to the client who is responsible for calling the API which gives them
 // the API key, and also allows the possibility of them rendering the ips in the wrong
@@ -40,10 +34,19 @@ var tracer;
 // as we get each IP, call the geolocating API from the server then simply pass
 // the lat/lng to the client so they can render
 
+// Read the counter from the file when the server starts
+
+fs.readFile(counterFilePath, 'utf8', (err, data) => {
+    if (!err && !isNaN(parseInt(data, 10))) {
+        counter = parseInt(data, 10);
+    }
+});
+
 const API_KEY = "bd89924fb0004515ad776b73189bc523";
 
 io.on('connection', (socket)  => {
     console.log('A user connected');
+    socket.emit('counterUpdate', counter);
 
     socket.on('formSubmit', (data) => {
         console.log("starting traceroute: ")
@@ -55,6 +58,8 @@ io.on('connection', (socket)  => {
             tracer
                 .on('pid', (pid) => {
                     console.log(`pid: ${pid}`);
+                    counter += 1;
+                    io.emit('counterUpdate', counter);
                 })
                 .on('destination', (destination) => {
                     console.log(`destination: ${destination}`);
@@ -72,18 +77,12 @@ io.on('connection', (socket)  => {
                                 let lat = parseInt(r.latitude);
                                 let lng = parseInt(r.longitude);
                                 console.log(lat + " " + lng + " " + r.city + " " + r.country_name);
-                                socket.emit('newTracerouteHop', {lat: lat, lng: lng, id: ID})
+                                socket.emit('newTracerouteHop', {lat: lat, lng: lng, id: ID, hop: hop.hop})
                         })
                         //socket.emit('newTracerouteHop', hop.ip);
                     // else hop.ip is invalid
                     } else {
 
-                    }
-                    if(hop.ip == "Request timed out.") {
-                        timed_out += 1;
-                        if(timed_out == 1) {
-                            tracer.emit('close');
-                        }
                     }
                 })
                 .on('close', (code) => {
@@ -101,9 +100,23 @@ io.on('connection', (socket)  => {
         console.log("a user disconnected");
     })
 
-
 })
 
+function shutdown() {
+    console.log("Shutting down...");
+    fs.writeFileSync(counterFilePath, counter.toString(), (err) => {
+        if (err) console.error("Error saving counter: ", err);
+    });
+    process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught exception: ', err);
+    shutdown();
+})
 
 
 server.listen(5000, () => {

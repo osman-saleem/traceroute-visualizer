@@ -187,10 +187,28 @@ console.log(curves)
 function updatePinsAndCurves(data) {
   if(data.id == IDofCurrentTraceRoute) {
     var pin = getPin(data.lat, data.lng)
-    pins.push(pin)
+    // pins array needs to remain sorted after every insert
+    //pins.push([pin, data.hop])
+
+    let low = 0;
+    let high = pins.length;
+
+    while(low < high) {
+      let mid = Math.floor((low + high) / 2);
+      
+      if(pins[mid][1] < data.hop) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+
+    pins.splice(low, 0, [pin, data.hop]);
+
+
     sphere.add(pin)
     if(pins.length > 1) {
-      var curve = getCurve(pin, pins[pins.length - 2]);
+      var curve = getCurve(pin, pins[pins.length - 2][0]);
       curves.push(curve);
       sphere.add(curve);
     }
@@ -200,7 +218,7 @@ function updatePinsAndCurves(data) {
 
 function clearPinsAndCurves() {
   for(let pin in pins) {
-    sphere.remove(pins[pin])
+    sphere.remove(pins[pin][0])
   }
   for(let curve in curves) {
     sphere.remove(curves[curve])
@@ -257,11 +275,17 @@ document.addEventListener('DOMContentLoaded', () => {
     clearPinsAndCurves();
   });
 
+  // update the "X traceroutes visualized!" counter
+  socket.on('counterUpdate', (count) => {
+    document.getElementById('counter').innerText = count + " traceroutes visualized!";
+  } )
+
+  // when the submit button is pressed
   document.getElementById('domain_form').addEventListener('submit', (event) => {
     event.preventDefault();
     const domain = document.getElementById('domain').value;
     socket.emit('formSubmit', {domain});
-    document.getElementById('myForm').reset();
+    document.getElementById('domain').value = "";
   })
 
 });
