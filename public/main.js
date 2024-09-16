@@ -207,6 +207,12 @@ function updatePinsAndCurves(data) {
 
 
     sphere.add(pin)
+
+    for(let curve in curves) {
+      sphere.remove(curves[curve])
+    }
+    curves = []
+
     if(pins.length > 1) {
       var curve = getCurve(pin, pins[pins.length - 2][0]);
       curves.push(curve);
